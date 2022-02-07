@@ -63,13 +63,13 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-aop'
 
-    implementation "org.springframework.session:spring-session-core:${VerSpringSessionCore}"
+    implementation "org.springframework.session:spring-session-core"
     implementation "javax.validation:validation-api:${VerValidationApi}"
 
     implementation "com.alibaba:druid-spring-boot-starter:${VerDruidSpringBootStarter}"
     implementation "org.mybatis.spring.boot:mybatis-spring-boot-starter:${VerMybatisSpringBootStarter}"
     implementation "com.github.pagehelper:pagehelper-spring-boot-starter:${VerPageHelperSpringBootStarter}"
-    implementation "redis.clients:jedis:${VerJedis}"
+    implementation "redis.clients:jedis"
 
     implementation "io.springfox:springfox-boot-starter:${VerSpringfoxBootStarter}"
     implementation "com.github.xiaoymin:knife4j-spring-boot-starter:${VerKnife4jSpringBootStarter}"
