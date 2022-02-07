@@ -1,0 +1,103 @@
+plugins {
+    id 'org.springframework.boot' version "${VerSpringBootStarter}"
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'idea'
+}
+
+group = 'com.genersoft'
+version = '2.0.2'
+description = 'web video platform'
+
+// 指定JDK版本
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+// 指定编码格式
+[compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF-8'
+
+//configurations.all {
+//    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+//}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.compilerArgs << "-Xlint:unchecked"
+//    options.compilerArgs << "-Xlint:-unchecked"
+//    options.compilerArgs << "-Xlint:-deprecation"
+}
+
+bootJar {
+    mainClassName = 'com.genersoft.iot.vmp.VManageBootstrap'
+    launchScript()
+    // launchScript 使用 https://www.liangzl.com/get-article-detail-35469.html
+}
+
+bootRun {
+    sourceResources sourceSets.main
+}
+
+configurations {
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenLocal()
+    maven { url 'https://maven.aliyun.com/repository/public/' }
+    maven { url 'https://maven.aliyun.com/repository/spring/' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+    maven { url 'https://maven.aliyun.com/repository/spring-plugin/' }
+    maven { url = uri('https://repo.maven.apache.org/maven2/') }
+    mavenCentral()
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+    implementation "org.springframework.session:spring-session-core:${VerSpringSessionCore}"
+    implementation "javax.validation:validation-api:${VerValidationApi}"
+
+    implementation "com.alibaba:druid-spring-boot-starter:${VerDruidSpringBootStarter}"
+    implementation "org.mybatis.spring.boot:mybatis-spring-boot-starter:${VerMybatisSpringBootStarter}"
+    implementation "com.github.pagehelper:pagehelper-spring-boot-starter:${VerPageHelperSpringBootStarter}"
+    implementation "redis.clients:jedis:${VerJedis}"
+
+    implementation "io.springfox:springfox-boot-starter:${VerSpringfoxBootStarter}"
+    implementation "com.github.xiaoymin:knife4j-spring-boot-starter:${VerKnife4jSpringBootStarter}"
+
+    implementation "javax.sip:jain-sip-ri:${VerJainSipRi}"
+    implementation "org.slf4j:log4j-over-slf4j:${VerLog4jOverSlf4j}"
+    implementation "org.dom4j:dom4j:${VerDom4j}"
+    implementation "com.alibaba:fastjson:${VerFastjson}"
+    implementation "com.google.guava:guava:${VerGuava}"
+    implementation "com.squareup.okhttp3:okhttp:${VerOkhttp}"
+    implementation "com.burgstaller:okhttp-digest:${VerOkhttpDigest}"
+    implementation "net.sf.kxml:kxml2:${VerKxml2}"
+    implementation "org.mitre.dsmiley.httpproxy:smiley-http-proxy-servlet:${VerSmileyHttpProxyServlet}"
+    implementation "com.alibaba:easyexcel:${VerEasyExcel}"
+
+    // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
+    runtimeOnly 'org.xerial:sqlite-jdbc'
+    runtimeOnly 'mysql:mysql-connector-java'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    compileOnly "org.projectlombok:lombok:${VerLombok}"
+    annotationProcessor "org.projectlombok:lombok:${VerLombok}"
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+}
+
+test {
+    useJUnitPlatform()
+}
