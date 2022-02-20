@@ -68,3 +68,4 @@ bin/
 *.log
 
 .DS_Store
+web_src/pnpm-lock.yaml

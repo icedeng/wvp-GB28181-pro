@@ -85,6 +85,9 @@ dependencies {
     implementation "org.mitre.dsmiley.httpproxy:smiley-http-proxy-servlet:${VerSmileyHttpProxyServlet}"
     implementation "com.alibaba:easyexcel:${VerEasyExcel}"
 
+    // https://mvnrepository.com/artifact/com.github.oshi/oshi-core
+    implementation "com.github.oshi:oshi-core:${VerOshiCore}"
+
     // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
     runtimeOnly 'org.xerial:sqlite-jdbc'
     runtimeOnly 'mysql:mysql-connector-java'
