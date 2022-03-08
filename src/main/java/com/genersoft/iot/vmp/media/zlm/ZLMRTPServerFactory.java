@@ -205,7 +205,7 @@ public class ZLMRTPServerFactory {
     /**
      * 调用zlm RESTful API —— startSendRtp
      */
-    public Boolean startSendRtpStream(MediaServerItem mediaServerItem, Map<String, Object>param) {
+    public JSONObject startSendRtpStream(MediaServerItem mediaServerItem, Map<String, Object>param) {
         Boolean result = false;
         JSONObject jsonObject = zlmresTfulUtils.startSendRtp(mediaServerItem, param);
         if (jsonObject == null) {
@@ -216,7 +216,7 @@ public class ZLMRTPServerFactory {
         } else {
             logger.error("RTP推流失败: " + jsonObject.getString("msg"));
         }
-        return result;
+        return jsonObject;
     }
 
     /**
@@ -242,8 +242,17 @@ public class ZLMRTPServerFactory {
      */
     public int totalReaderCount(MediaServerItem mediaServerItem, String app, String streamId) {
         JSONObject mediaInfo = zlmresTfulUtils.getMediaInfo(mediaServerItem, app, "rtmp", streamId);
+        Integer code = mediaInfo.getInteger("code");
         if (mediaInfo == null) {
             return 0;
+        }
+        if ( code < 0) {
+            logger.warn("查询流({}/{})是否有其它观看者时得到： {}", app, streamId, mediaInfo.getString("msg"));
+            return -1;
+        }
+        if ( code == 0 && ! mediaInfo.getBoolean("online")) {
+            logger.warn("查询流({}/{})是否有其它观看者时得到： {}", app, streamId, mediaInfo.getString("msg"));
+            return -1;
         }
         return mediaInfo.getInteger("totalReaderCount");
     }

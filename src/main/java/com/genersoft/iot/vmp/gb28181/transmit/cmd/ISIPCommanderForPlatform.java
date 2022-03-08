@@ -2,6 +2,7 @@ package com.genersoft.iot.vmp.gb28181.transmit.cmd;
 
 import com.genersoft.iot.vmp.gb28181.bean.DeviceChannel;
 import com.genersoft.iot.vmp.gb28181.bean.ParentPlatform;
+import com.genersoft.iot.vmp.gb28181.bean.RecordInfo;
 import com.genersoft.iot.vmp.gb28181.bean.SubscribeInfo;
 import com.genersoft.iot.vmp.gb28181.event.SipSubscribe;
 import com.genersoft.iot.vmp.service.bean.GPSMsgInfo;
@@ -17,7 +18,7 @@ public interface ISIPCommanderForPlatform {
      * @return
      */
     boolean register(ParentPlatform parentPlatform, SipSubscribe.Event errorEvent , SipSubscribe.Event okEvent);
-    boolean register(ParentPlatform parentPlatform, String callId, WWWAuthenticateHeader www, SipSubscribe.Event errorEvent , SipSubscribe.Event okEvent);
+    boolean register(ParentPlatform parentPlatform, String callId, WWWAuthenticateHeader www, SipSubscribe.Event errorEvent , SipSubscribe.Event okEvent, boolean registerAgain);
 
     /**
      * 向上级平台注销
@@ -78,13 +79,28 @@ public interface ISIPCommanderForPlatform {
      * @param parentPlatform
      * @param deviceChannels
      */
-    boolean sendNotifyForCatalogAddOrUpdate(String type, ParentPlatform parentPlatform, List<DeviceChannel> deviceChannels, SubscribeInfo subscribeInfo);
+    boolean sendNotifyForCatalogAddOrUpdate(String type, ParentPlatform parentPlatform, List<DeviceChannel> deviceChannels, SubscribeInfo subscribeInfo, Integer index);
 
     /**
      * 回复catalog事件-删除
      * @param parentPlatform
      * @param deviceChannels
      */
-    boolean sendNotifyForCatalogOther(String type, ParentPlatform parentPlatform, List<DeviceChannel> deviceChannels, SubscribeInfo subscribeInfo);
+    boolean sendNotifyForCatalogOther(String type, ParentPlatform parentPlatform, List<DeviceChannel> deviceChannels, SubscribeInfo subscribeInfo, Integer index);
 
+    /**
+     * 回复recordInfo
+     * @param deviceChannel 通道信息
+     * @param parentPlatform 平台信息
+     * @param fromTag fromTag
+     * @param recordInfo 录像信息
+     */
+    boolean recordInfo(DeviceChannel deviceChannel, ParentPlatform parentPlatform, String fromTag, RecordInfo recordInfo);
+
+    /**
+     * 向发起点播的上级回复bye
+     * @param platform 平台信息
+     * @param callId  callId
+     */
+    void streamByeCmd(ParentPlatform platform, String callId);
 }

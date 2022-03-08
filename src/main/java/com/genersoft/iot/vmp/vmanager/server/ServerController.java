@@ -58,8 +58,6 @@ public class ServerController {
     @GetMapping(value = "/media_server/list")
     @ResponseBody
     public WVPResult<List<MediaServerItem>> getMediaServerList(boolean detail){
-        List<MediaServerItem> all = mediaServerService.getAll();
-
         WVPResult<List<MediaServerItem>> result = new WVPResult<>();
         result.setCode(0);
         result.setMsg("success");
@@ -160,6 +158,7 @@ public class ServerController {
     public WVPResult<String> deleteMediaServer(@RequestParam  String id){
         if (mediaServerService.getOne(id) != null) {
             mediaServerService.delete(id);
+            mediaServerService.deleteDb(id);
         }else {
             WVPResult<String> result = new WVPResult<>();
             result.setCode(-1);

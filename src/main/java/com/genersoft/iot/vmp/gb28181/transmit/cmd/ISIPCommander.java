@@ -119,8 +119,8 @@ public interface ISIPCommander {
 	/**
 	 * 视频流停止
 	 */
-	void streamByeCmd(String deviceId, String channelId, SipSubscribe.Event okEvent);
-	void streamByeCmd(String deviceId, String channelId);
+	void streamByeCmd(String deviceId, String channelId, String stream, SipSubscribe.Event okEvent);
+	void streamByeCmd(String deviceId, String channelId, String stream);
 
 	/**
 	 * 回放暂停
@@ -258,7 +258,7 @@ public interface ISIPCommander {
 	 * @param endTime 结束时间,格式要求：yyyy-MM-dd HH:mm:ss
 	 * @param sn
 	 */
-	boolean recordInfoQuery(Device device, String channelId, String startTime, String endTime, int sn, SipSubscribe.Event errorEvent);
+	boolean recordInfoQuery(Device device, String channelId, String startTime, String endTime, int sn,  Integer Secrecy, String type, SipSubscribe.Event okEvent, SipSubscribe.Event errorEvent);
 	
 	/**
 	 * 查询报警信息

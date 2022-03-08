@@ -71,6 +71,20 @@ public class SendRtpItem {
      */
     private String mediaServerId;
 
+    /**
+     *  invite的callId
+     */
+    private String CallId;
+
+    /**
+     * 是否是play， false是playback
+     */
+    private boolean isPlay;
+
+    private byte[] transaction;
+
+    private byte[] dialog;
+
     public String getIp() {
         return ip;
     }
@@ -173,5 +187,37 @@ public class SendRtpItem {
 
     public void setMediaServerId(String mediaServerId) {
         this.mediaServerId = mediaServerId;
+    }
+
+    public String getCallId() {
+        return CallId;
+    }
+
+    public void setCallId(String callId) {
+        CallId = callId;
+    }
+
+    public boolean isPlay() {
+        return isPlay;
+    }
+
+    public void setPlay(boolean play) {
+        isPlay = play;
+    }
+
+    public byte[] getTransaction() {
+        return transaction;
+    }
+
+    public void setTransaction(byte[] transaction) {
+        this.transaction = transaction;
+    }
+
+    public byte[] getDialog() {
+        return dialog;
+    }
+
+    public void setDialog(byte[] dialog) {
+        this.dialog = dialog;
     }
 }

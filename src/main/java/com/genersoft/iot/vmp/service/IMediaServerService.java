@@ -22,7 +22,7 @@ public interface IMediaServerService {
 
     MediaServerItem getOne(String generalMediaServerId);
 
-    MediaServerItem getOneByHostAndPort(String host, int port);
+    void syncCatchFromDatabase();
 
     /**
      * 新的节点加入
@@ -42,11 +42,13 @@ public interface IMediaServerService {
 
     void setZLMConfig(MediaServerItem mediaServerItem, boolean restart);
 
+    void updateVmServer(List<MediaServerItem>  mediaServerItemList);
+
     SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId);
 
     SSRCInfo openRTPServer(MediaServerItem mediaServerItem, String streamId, boolean isPlayback);
 
-    void closeRTPServer(Device device, String channelId);
+    void closeRTPServer(String deviceId, String channelId, String ssrc);
 
     void clearRTPServer(MediaServerItem mediaServerItem);
 
@@ -56,7 +58,7 @@ public interface IMediaServerService {
 
     void removeCount(String mediaServerId);
 
-    void releaseSsrc(MediaServerItem mediaServerItem, String ssrc);
+    void releaseSsrc(String mediaServerItemId, String ssrc);
 
     void clearMediaServerForOnline();
 
@@ -73,6 +75,8 @@ public interface IMediaServerService {
     boolean checkMediaRecordServer(String ip, int port);
 
     void delete(String id);
+
+    void deleteDb(String id);
 
     MediaServerItem getDefaultMediaServer();
 

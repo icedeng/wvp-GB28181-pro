@@ -1,10 +1,14 @@
 package com.genersoft.iot.vmp.gb28181.transmit.event.request.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.genersoft.iot.vmp.common.StreamInfo;
+import com.genersoft.iot.vmp.conf.DynamicTask;
 import com.genersoft.iot.vmp.gb28181.bean.SendRtpItem;
 import com.genersoft.iot.vmp.gb28181.transmit.SIPProcessorObserver;
 import com.genersoft.iot.vmp.gb28181.transmit.event.request.ISIPRequestProcessor;
 import com.genersoft.iot.vmp.gb28181.transmit.event.request.SIPRequestProcessorParent;
+import com.genersoft.iot.vmp.media.zlm.ZLMHttpHookSubscribe;
 import com.genersoft.iot.vmp.media.zlm.ZLMRTPServerFactory;
 import com.genersoft.iot.vmp.media.zlm.dto.MediaServerItem;
 import com.genersoft.iot.vmp.service.IMediaServerService;
@@ -19,11 +23,14 @@ import javax.sip.Dialog;
 import javax.sip.DialogState;
 import javax.sip.RequestEvent;
 import javax.sip.address.SipURI;
+import javax.sip.header.CallIdHeader;
 import javax.sip.header.FromHeader;
 import javax.sip.header.HeaderAddress;
 import javax.sip.header.ToHeader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * SIP命令类型： ACK请求
@@ -52,6 +59,12 @@ public class AckRequestProcessor extends SIPRequestProcessorParent implements In
 	@Autowired
 	private IMediaServerService mediaServerService;
 
+	@Autowired
+	private ZLMHttpHookSubscribe subscribe;
+
+	@Autowired
+	private DynamicTask dynamicTask;
+
 
 	/**   
 	 * 处理  ACK请求
@@ -61,62 +74,53 @@ public class AckRequestProcessor extends SIPRequestProcessorParent implements In
 	@Override
 	public void process(RequestEvent evt) {
 		Dialog dialog = evt.getDialog();
+		CallIdHeader callIdHeader = (CallIdHeader)evt.getRequest().getHeader(CallIdHeader.NAME);
 		if (dialog == null) return;
 		if (dialog.getState()== DialogState.CONFIRMED) {
 			String platformGbId = ((SipURI) ((HeaderAddress) evt.getRequest().getHeader(FromHeader.NAME)).getAddress().getURI()).getUser();
+			logger.info("ACK请求： platformGbId->{}", platformGbId);
+			// 取消设置的超时任务
+			dynamicTask.stop(callIdHeader.getCallId());
 			String channelId = ((SipURI) ((HeaderAddress) evt.getRequest().getHeader(ToHeader.NAME)).getAddress().getURI()).getUser();
-			SendRtpItem sendRtpItem =  redisCatchStorage.querySendRTPServer(platformGbId, channelId);
+			SendRtpItem sendRtpItem =  redisCatchStorage.querySendRTPServer(platformGbId, channelId, null, callIdHeader.getCallId());
 			String is_Udp = sendRtpItem.isTcp() ? "0" : "1";
 			String deviceId = sendRtpItem.getDeviceId();
 			StreamInfo streamInfo = null;
-			if (deviceId == null) {
+			if (sendRtpItem.isPlay()) {
+				streamInfo = redisCatchStorage.queryPlayByDevice(deviceId, channelId);
+			}else {
+				streamInfo = redisCatchStorage.queryPlaybackByDevice(deviceId, channelId);
+			}
+			if (streamInfo == null) {
 				streamInfo = new StreamInfo();
 				streamInfo.setApp(sendRtpItem.getApp());
-				streamInfo.setStreamId(sendRtpItem.getStreamId());
-			}else {
-				streamInfo = redisCatchStorage.queryPlayByDevice(deviceId, channelId);
-				sendRtpItem.setStreamId(streamInfo.getStreamId());
-				streamInfo.setApp("rtp");
+				streamInfo.setStream(sendRtpItem.getStreamId());
 			}
-
 			redisCatchStorage.updateSendRTPSever(sendRtpItem);
-			logger.info(platformGbId);
-			logger.info(channelId);
 			Map<String, Object> param = new HashMap<>();
 			param.put("vhost","__defaultVhost__");
 			param.put("app",streamInfo.getApp());
-			param.put("stream",streamInfo.getStreamId());
+			param.put("stream",streamInfo.getStream());
 			param.put("ssrc", sendRtpItem.getSsrc());
 			param.put("dst_url",sendRtpItem.getIp());
 			param.put("dst_port", sendRtpItem.getPort());
 			param.put("is_udp", is_Udp);
-			//param.put ("src_port", sendRtpItem.getLocalPort());
-			// 设备推流查询，成功后才能转推
-			boolean rtpPushed = false;
-			long startTime = System.currentTimeMillis();
-			while (!rtpPushed) {
-				try {
-					if (System.currentTimeMillis() - startTime < 30 * 1000) {
-						MediaServerItem mediaInfo = mediaServerService.getOne(sendRtpItem.getMediaServerId());
-						if (zlmrtpServerFactory.isStreamReady(mediaInfo, streamInfo.getApp(), streamInfo.getStreamId())) {
-							rtpPushed = true;
-							logger.info("已获取设备推流[{}/{}]，开始向上级推流[{}:{}]",
-									streamInfo.getApp() ,streamInfo.getStreamId(), sendRtpItem.getIp(), sendRtpItem.getPort());
+			MediaServerItem mediaInfo = mediaServerService.getOne(sendRtpItem.getMediaServerId());
+			JSONObject jsonObject = zlmrtpServerFactory.startSendRtpStream(mediaInfo, param);
+			if (jsonObject.getInteger("code") != 0) {
+				logger.info("监听流以等待流上线{}/{}", streamInfo.getApp(), streamInfo.getStream());
+				// 监听流上线
+				// 添加订阅
+				JSONObject subscribeKey = new JSONObject();
+				subscribeKey.put("app", "rtp");
+				subscribeKey.put("stream", streamInfo.getStream());
+				subscribeKey.put("regist", true);
+				subscribeKey.put("schema", "rtmp");
+				subscribeKey.put("mediaServerId", sendRtpItem.getMediaServerId());
+				subscribe.addSubscribe(ZLMHttpHookSubscribe.HookType.on_stream_changed, subscribeKey,
+						(MediaServerItem mediaServerItemInUse, JSONObject json)->{
 							zlmrtpServerFactory.startSendRtpStream(mediaInfo, param);
-						} else {
-							logger.info("等待设备推流[{}/{}].......",
-									streamInfo.getApp() ,streamInfo.getStreamId());
-							Thread.sleep(1000);
-							continue;
-						}
-					} else {
-						rtpPushed = true;
-						logger.info("设备推流[{}/{}]超时，终止向上级推流",
-								streamInfo.getApp() ,streamInfo.getStreamId());
-					}
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+						});
 			}
 		}
 	}

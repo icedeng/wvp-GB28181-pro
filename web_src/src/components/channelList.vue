@@ -28,9 +28,7 @@
             <devicePlayer ref="devicePlayer" v-loading="isLoging"></devicePlayer>
             <!--设备列表-->
             <el-table ref="channelListTable" :data="deviceChannelList" :height="winHeight" border style="width: 100%">
-                <el-table-column prop="channelId" label="通道编号" width="210">
-                </el-table-column>
-                <el-table-column prop="deviceId" label="设备编号" width="210">
+                <el-table-column prop="channelId" label="通道编号" width="200">
                 </el-table-column>
                 <el-table-column prop="name" label="通道名称">
                 </el-table-column>
@@ -84,7 +82,7 @@
                             <!-- <el-button size="mini" icon="el-icon-video-play" v-if="scope.row.parental == 0" @click="sendDevicePush(scope.row)">播放</el-button> -->
                             <el-button size="mini" icon="el-icon-video-play" @click="sendDevicePush(scope.row)">播放</el-button>
                             <el-button size="mini" icon="el-icon-switch-button" type="danger" v-if="!!scope.row.streamId" @click="stopDevicePush(scope.row)">停止</el-button>
-                            <el-button size="mini" icon="el-icon-s-open" type="primary" v-if="scope.row.parental == 1" @click="changeSubchannel(scope.row)">查看</el-button>
+                            <el-button size="mini" icon="el-icon-s-open" type="primary" v-if="scope.row.subCount > 0" @click="changeSubchannel(scope.row)">查看</el-button>
                             <el-button size="mini" icon="el-icon-video-camera" type="primary" @click="queryRecords(scope.row)">设备录象</el-button>
                             <!--                             <el-button size="mini" @click="sendDevicePush(scope.row)">录像查询</el-button> -->
                         </el-button-group>

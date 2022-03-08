@@ -5,6 +5,7 @@ import com.genersoft.iot.vmp.media.zlm.dto.MediaServerItem;
 import com.genersoft.iot.vmp.media.zlm.dto.StreamProxyItem;
 import com.genersoft.iot.vmp.media.zlm.dto.StreamPushItem;
 import com.genersoft.iot.vmp.service.bean.GPSMsgInfo;
+import com.genersoft.iot.vmp.storager.dao.dto.ChannelSourceInfo;
 import com.genersoft.iot.vmp.vmanager.bean.DeviceChannelTree;
 import com.genersoft.iot.vmp.vmanager.gb28181.platform.bean.ChannelReduce;
 import com.github.pagehelper.PageInfo;
@@ -398,12 +399,6 @@ public interface IVideoManagerStorager {
 	void updateParentPlatformStatus(String platformGbID, boolean online);
 
 	/**
-	 * 更新媒体节点
-	 * @param mediaServerItem
-	 */
-	void updateMediaServer(MediaServerItem mediaServerItem);
-
-	/**
 	 * 根据媒体ID获取启用/不启用的代理列表
 	 * @param id 媒体ID
 	 * @param enable 启用/不启用
@@ -481,4 +476,6 @@ public interface IVideoManagerStorager {
 	void delRelationByPlatformId(String serverGBId);
 
     PlatformCatalog queryDefaultCatalogInPlatform(String platformId);
+
+	List<ChannelSourceInfo> getChannelSource(String platformId, String gbId);
 }

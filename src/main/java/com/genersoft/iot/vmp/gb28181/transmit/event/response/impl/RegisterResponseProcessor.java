@@ -78,26 +78,25 @@ public class RegisterResponseProcessor extends SIPResponseProcessorAbstract {
 
 		if (response.getStatusCode() == 401) {
 			WWWAuthenticateHeader www = (WWWAuthenticateHeader)response.getHeader(WWWAuthenticateHeader.NAME);
-			sipCommanderForPlatform.register(parentPlatform, callId, www, null, null);
+			sipCommanderForPlatform.register(parentPlatform, callId, www, null, null, true);
 		}else if (response.getStatusCode() == 200){
 			// 注册/注销成功
 			logger.info(String.format("%s %s成功", platformGBId, action));
 			redisCatchStorage.delPlatformRegisterInfo(callId);
 			parentPlatform.setStatus("注册".equals(action));
 			// 取回Expires设置，避免注销过程中被置为0
-			ParentPlatform parentPlatformTmp = storager.queryParentPlatByServerGBId(platformGBId);
-			String expires = parentPlatformTmp.getExpires();
-			parentPlatform.setExpires(expires);
-			parentPlatform.setId(parentPlatformTmp.getId());
+			if (!parentPlatformCatch.getParentPlatform().getExpires().equals("0")) {
+				ParentPlatform parentPlatformTmp = storager.queryParentPlatByServerGBId(platformGBId);
+				String expires = parentPlatformTmp.getExpires();
+				parentPlatform.setExpires(expires);
+				parentPlatform.setId(parentPlatformTmp.getId());
+				redisCatchStorage.updatePlatformRegister(parentPlatform);
+				redisCatchStorage.updatePlatformKeepalive(parentPlatform);
+				parentPlatformCatch.setParentPlatform(parentPlatform);
+				redisCatchStorage.updatePlatformCatchInfo(parentPlatformCatch);
+			}
 			storager.updateParentPlatformStatus(platformGBId, "注册".equals(action));
 
-			redisCatchStorage.updatePlatformRegister(parentPlatform);
-
-			redisCatchStorage.updatePlatformKeepalive(parentPlatform);
-
-			parentPlatformCatch.setParentPlatform(parentPlatform);
-
-			redisCatchStorage.updatePlatformCatchInfo(parentPlatformCatch);
 		}
 	}
 

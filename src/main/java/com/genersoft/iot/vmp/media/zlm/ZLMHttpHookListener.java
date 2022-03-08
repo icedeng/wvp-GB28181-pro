@@ -181,12 +181,11 @@ public class ZLMHttpHookListener {
 	@PostMapping(value = "/on_publish", produces = "application/json;charset=UTF-8")
 	public ResponseEntity<String> onPublish(@RequestBody JSONObject json) {
 
-		logger.debug("[ ZLM HOOK ]on_publish API调用，参数：" + json.toString());
+		logger.info("[ ZLM HOOK ]on_publish API调用，参数：" + json.toString());
 		JSONObject ret = new JSONObject();
 		ret.put("code", 0);
 		ret.put("msg", "success");
 		ret.put("enableHls", true);
-		ret.put("enableMP4", userSetup.isRecordPushLive());
 		String mediaServerId = json.getString("mediaServerId");
 		ZLMHttpHookSubscribe.Event subscribe = this.subscribe.getSubscribe(ZLMHttpHookSubscribe.HookType.on_publish, json);
 		if (subscribe != null) {
@@ -200,6 +199,11 @@ public class ZLMHttpHookListener {
 		}
 	 	String app = json.getString("app");
 	 	String stream = json.getString("stream");
+		if ("rtp".equals(app)) {
+			ret.put("enableMP4", userSetup.getRecordSip());
+		}else {
+			ret.put("enableMP4", userSetup.isRecordPushLive());
+		}
 		StreamInfo streamInfo = redisCatchStorage.queryPlaybackByStreamId(stream);
 
 		// 录像回放时不进行录像下载
@@ -354,6 +358,9 @@ public class ZLMHttpHookListener {
 					if (mediaServerItem != null){
 						if (regist) {
 							StreamPushItem streamPushItem = null;
+							StreamInfo streamInfoByAppAndStream = mediaService.getStreamInfoByAppAndStream(mediaServerItem, app, streamId, tracks);
+							item.setStreamInfo(streamInfoByAppAndStream);
+
 							redisCatchStorage.addStream(mediaServerItem, type, app, streamId, item);
 							if (item.getOriginType() == OriginType.RTSP_PUSH.ordinal()
 									|| item.getOriginType() == OriginType.RTMP_PUSH.ordinal()
@@ -371,7 +378,7 @@ public class ZLMHttpHookListener {
 								}
 							}
 							if (gbStreams.size() > 0) {
-								eventPublisher.catalogEventPublishForStream(null, gbStreams.toArray(new GbStream[0]), CatalogEvent.ON);
+								eventPublisher.catalogEventPublishForStream(null, gbStreams, CatalogEvent.ON);
 							}
 
 						}else {
@@ -432,14 +439,16 @@ public class ZLMHttpHookListener {
 				if (redisCatchStorage.isChannelSendingRTP(streamInfoForPlayCatch.getChannelId())) {
 					ret.put("close", false);
 				} else {
-					cmder.streamByeCmd(streamInfoForPlayCatch.getDeviceID(), streamInfoForPlayCatch.getChannelId());
+					cmder.streamByeCmd(streamInfoForPlayCatch.getDeviceID(), streamInfoForPlayCatch.getChannelId(),
+							streamInfoForPlayCatch.getStream());
 					redisCatchStorage.stopPlay(streamInfoForPlayCatch);
 					storager.stopPlay(streamInfoForPlayCatch.getDeviceID(), streamInfoForPlayCatch.getChannelId());
 				}
 			}else{
 				StreamInfo streamInfoForPlayBackCatch = redisCatchStorage.queryPlaybackByStreamId(streamId);
 				if (streamInfoForPlayBackCatch != null) {
-					cmder.streamByeCmd(streamInfoForPlayBackCatch.getDeviceID(), streamInfoForPlayBackCatch.getChannelId());
+					cmder.streamByeCmd(streamInfoForPlayBackCatch.getDeviceID(),
+							streamInfoForPlayBackCatch.getChannelId(), streamInfoForPlayBackCatch.getStream());
 					redisCatchStorage.stopPlayback(streamInfoForPlayBackCatch);
 				}else {
 					StreamInfo streamInfoForDownload = redisCatchStorage.queryDownloadByStreamId(streamId);
@@ -480,7 +489,7 @@ public class ZLMHttpHookListener {
 		}
 		String mediaServerId = json.getString("mediaServerId");
 		MediaServerItem mediaInfo = mediaServerService.getOne(mediaServerId);
-		if (userSetup.isAutoApplyPlay() && mediaInfo != null) {
+		if (userSetup.isAutoApplyPlay() && mediaInfo != null && mediaInfo.isRtpEnable()) {
 			String app = json.getString("app");
 			String streamId = json.getString("stream");
 			if ("rtp".equals(app)) {
@@ -490,28 +499,16 @@ public class ZLMHttpHookListener {
 					String channelId = s[1];
 					Device device = redisCatchStorage.getDevice(deviceId);
 					if (device != null) {
-						UUID uuid = UUID.randomUUID();
-						SSRCInfo ssrcInfo;
-						String streamId2 = null;
-						if (mediaInfo.isRtpEnable()) {
-							streamId2 = String.format("%s_%s", device.getDeviceId(), channelId);
-						}
-						ssrcInfo = mediaServerService.openRTPServer(mediaInfo, streamId2);
-						cmder.playStreamCmd(mediaInfo, ssrcInfo, device, channelId, (MediaServerItem mediaServerItemInuse, JSONObject response) -> {
-							logger.info("收到订阅消息： " + response.toJSONString());
-							playService.onPublishHandlerForPlay(mediaServerItemInuse, response, deviceId, channelId, uuid.toString());
-						}, null);
+						playService.play(mediaInfo,deviceId, channelId, null, null, null);
 					}
-
 				}
 			}
-
 		}
 
 		JSONObject ret = new JSONObject();
 		ret.put("code", 0);
 		ret.put("msg", "success");
-		return new ResponseEntity<String>(ret.toString(),HttpStatus.OK);
+		return new ResponseEntity<>(ret.toString(),HttpStatus.OK);
 	}
 	
 	/**

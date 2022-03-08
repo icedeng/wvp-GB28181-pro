@@ -4,6 +4,7 @@ import com.genersoft.iot.vmp.common.VideoManagerConstants;
 import com.genersoft.iot.vmp.conf.DynamicTask;
 import com.genersoft.iot.vmp.conf.UserSetup;
 import com.genersoft.iot.vmp.gb28181.bean.CmdType;
+import com.genersoft.iot.vmp.gb28181.bean.ParentPlatform;
 import com.genersoft.iot.vmp.gb28181.bean.SubscribeInfo;
 import com.genersoft.iot.vmp.gb28181.task.GPSSubscribeTask;
 import com.genersoft.iot.vmp.gb28181.transmit.SIPProcessorObserver;
@@ -26,9 +27,7 @@ import javax.sip.InvalidArgumentException;
 import javax.sip.RequestEvent;
 import javax.sip.ServerTransaction;
 import javax.sip.SipException;
-import javax.sip.header.CallIdHeader;
 import javax.sip.header.ExpiresHeader;
-import javax.sip.header.Header;
 import javax.sip.header.ToHeader;
 import javax.sip.message.Request;
 import javax.sip.message.Response;
@@ -105,9 +104,6 @@ public class SubscribeRequestProcessor extends SIPRequestProcessorParent impleme
 					logger.info("processRequest serverTransactionId is null.");
 				}
 			}
-
-
-
 		} catch (ParseException e) {
 			e.printStackTrace();
 		} catch (SipException e) {
@@ -141,21 +137,20 @@ public class SubscribeRequestProcessor extends SIPRequestProcessorParent impleme
 
 		if (subscribeInfo.getExpires() > 0) {
 			if (redisCatchStorage.getSubscribe(key) != null) {
-				dynamicTask.stopCron(key);
+				dynamicTask.stop(key);
 			}
 			String interval = XmlUtil.getText(rootElement, "Interval"); // GPS上报时间间隔
 			dynamicTask.startCron(key, new GPSSubscribeTask(redisCatchStorage, sipCommanderForPlatform, storager,  platformId, sn, key), Integer.parseInt(interval));
 
 			redisCatchStorage.updateSubscribe(key, subscribeInfo);
 		}else if (subscribeInfo.getExpires() == 0) {
-			dynamicTask.stopCron(key);
+			dynamicTask.stop(key);
 			redisCatchStorage.delSubscribe(key);
 		}
 
-
-
 		try {
-			Response response = responseXmlAck(evt, resultXml.toString());
+			ParentPlatform parentPlatform = storager.queryParentPlatByServerGBId(platformId);
+			Response response = responseXmlAck(evt, resultXml.toString(), parentPlatform);
 			ToHeader toHeader = (ToHeader)response.getHeader(ToHeader.NAME);
 			subscribeInfo.setToTag(toHeader.getTag());
 			redisCatchStorage.updateSubscribe(key, subscribeInfo);
@@ -196,7 +191,8 @@ public class SubscribeRequestProcessor extends SIPRequestProcessorParent impleme
 		}
 
 		try {
-			Response response = responseXmlAck(evt, resultXml.toString());
+			ParentPlatform parentPlatform = storager.queryParentPlatByServerGBId(platformId);
+			Response response = responseXmlAck(evt, resultXml.toString(), parentPlatform);
 			ToHeader toHeader = (ToHeader)response.getHeader(ToHeader.NAME);
 			subscribeInfo.setToTag(toHeader.getTag());
 			redisCatchStorage.updateSubscribe(key, subscribeInfo);

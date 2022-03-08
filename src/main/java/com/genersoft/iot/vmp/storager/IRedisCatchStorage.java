@@ -7,6 +7,7 @@ import com.genersoft.iot.vmp.media.zlm.dto.MediaItem;
 import com.genersoft.iot.vmp.media.zlm.dto.MediaServerItem;
 import com.genersoft.iot.vmp.media.zlm.dto.StreamPushItem;
 import com.genersoft.iot.vmp.service.bean.GPSMsgInfo;
+import com.genersoft.iot.vmp.service.bean.SSRCInfo;
 import com.genersoft.iot.vmp.service.bean.ThirdPartyGB;
 
 import java.util.List;
@@ -88,7 +89,7 @@ public interface IRedisCatchStorage {
      * @param channelId
      * @return sendRtpItem
      */
-    SendRtpItem querySendRTPServer(String platformGbId, String channelId);
+    SendRtpItem querySendRTPServer(String platformGbId, String channelId, String streamId, String callId);
 
     List<SendRtpItem> querySendRTPServer(String platformGbId);
 
@@ -97,7 +98,7 @@ public interface IRedisCatchStorage {
      * @param platformGbId
      * @param channelId
      */
-    void deleteSendRTPServer(String platformGbId, String channelId);
+    void deleteSendRTPServer(String platformGbId, String channelId, String callId, String streamId);
 
     /**
      * 查询某个通道是否存在上级点播（RTP推送）
@@ -220,4 +221,5 @@ public interface IRedisCatchStorage {
     void addMemInfo(double memInfo);
 
     void addNetInfo(Map<String, String> networkInterfaces);
+
 }

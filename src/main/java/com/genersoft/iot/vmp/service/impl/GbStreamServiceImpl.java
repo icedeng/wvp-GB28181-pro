@@ -103,7 +103,7 @@ public class GbStreamServiceImpl implements IGbStreamService {
         deviceChannel.setStatus(gbStream.isStatus()?1:0);
         deviceChannel.setParentId(catalogId ==null?gbStream.getCatalogId():catalogId);
         deviceChannel.setRegisterWay(1);
-        deviceChannel.setCivilCode(sipConfig.getDomain());
+        deviceChannel.setCivilCode(sipConfig.getDomain().substring(0, sipConfig.getDomain().length() - 2));
         deviceChannel.setModel("live");
         deviceChannel.setOwner("wvp-pro");
         deviceChannel.setParental(0);
@@ -118,14 +118,14 @@ public class GbStreamServiceImpl implements IGbStreamService {
         TransactionStatus transactionStatus = dataSourceTransactionManager.getTransaction(transactionDefinition);
         try {
             List<DeviceChannel> deviceChannelList = new ArrayList<>();
+            platformGbStreamMapper.delByAppAndStreamsByPlatformId(gbStreams, platformId);
             for (GbStream gbStream : gbStreams) {
-                platformGbStreamMapper.delByAppAndStreamAndPlatform(gbStream.getApp(), gbStream.getStream(), platformId);
                 DeviceChannel deviceChannel = new DeviceChannel();
                 deviceChannel.setChannelId(gbStream.getGbId());
                 deviceChannelList.add(deviceChannel);
-                eventPublisher.catalogEventPublish(platformId, deviceChannel, CatalogEvent.DEL);
             }
 
+            eventPublisher.catalogEventPublish(platformId, deviceChannelList, CatalogEvent.DEL);
             dataSourceTransactionManager.commit(transactionStatus);     //手动提交
             result = true;
         }catch (Exception e) {
@@ -159,7 +159,9 @@ public class GbStreamServiceImpl implements IGbStreamService {
                 List<ParentPlatform> parentPlatforms = platformGbStreamMapper.selectByAppAndStream(gs.getApp(), gs.getStream());
                 if (parentPlatforms.size() > 0) {
                     for (ParentPlatform parentPlatform : parentPlatforms) {
-                        eventPublisher.catalogEventPublishForStream(parentPlatform.getServerGBId(), gs, type);
+                        if (parentPlatform != null) {
+                            eventPublisher.catalogEventPublishForStream(parentPlatform.getServerGBId(), gs, type);
+                        }
                     }
                 }
             }
