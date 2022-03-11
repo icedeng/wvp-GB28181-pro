@@ -309,12 +309,6 @@ public class NotifyRequestProcessor extends SIPRequestProcessorParent implements
 
 				}
 
-				// RequestMessage msg = new RequestMessage();
-				// msg.setDeviceId(deviceId);
-				// msg.setType(DeferredResultHolder.CALLBACK_CMD_CATALOG);
-				// msg.setData(device);
-				// deferredResultHolder.invokeResult(msg);
-
 				if (offLineDetector.isOnline(deviceId)) {
 					publisher.onlineEventPublish(device, VideoManagerConstants.EVENT_ONLINE_MESSAGE);
 				}

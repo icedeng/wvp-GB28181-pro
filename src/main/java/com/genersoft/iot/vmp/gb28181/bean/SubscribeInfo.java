@@ -1,28 +1,26 @@
 package com.genersoft.iot.vmp.gb28181.bean;
 
+import com.genersoft.iot.vmp.utils.SerializeUtils;
+
+import javax.sip.Dialog;
 import javax.sip.RequestEvent;
+import javax.sip.ServerTransaction;
 import javax.sip.header.*;
 import javax.sip.message.Request;
 
 public class SubscribeInfo {
 
-    public SubscribeInfo() {
-    }
 
     public SubscribeInfo(RequestEvent evt, String id) {
         this.id = id;
         Request request = evt.getRequest();
-        CallIdHeader callIdHeader = (CallIdHeader)request.getHeader(CallIdHeader.NAME);
-        this.callId = callIdHeader.getCallId();
-        FromHeader fromHeader = (FromHeader)request.getHeader(FromHeader.NAME);
-        this.fromTag = fromHeader.getTag();
         ExpiresHeader expiresHeader = (ExpiresHeader)request.getHeader(ExpiresHeader.NAME);
         this.expires = expiresHeader.getExpires();
         EventHeader eventHeader = (EventHeader)request.getHeader(EventHeader.NAME);
         this.eventId = eventHeader.getEventId();
         this.eventType = eventHeader.getEventType();
-        ViaHeader viaHeader = (ViaHeader)request.getHeader(ViaHeader.NAME);
-        this.branch = viaHeader.getBranch();
+        this.transaction = evt.getServerTransaction();
+        this.dialog = evt.getDialog();
     }
 
     private String id;
@@ -30,9 +28,8 @@ public class SubscribeInfo {
     private String callId;
     private String eventId;
     private String eventType;
-    private String fromTag;
-    private String toTag;
-    private String branch;
+    private ServerTransaction transaction;
+    private Dialog dialog;
 
     public String getId() {
         return id;
@@ -46,18 +43,6 @@ public class SubscribeInfo {
         return callId;
     }
 
-    public String getFromTag() {
-        return fromTag;
-    }
-
-    public void setToTag(String toTag) {
-        this.toTag = toTag;
-    }
-
-    public String getToTag() {
-        return toTag;
-    }
-
     public void setId(String id) {
         this.id = id;
     }
@@ -68,10 +53,6 @@ public class SubscribeInfo {
 
     public void setCallId(String callId) {
         this.callId = callId;
-    }
-
-    public void setFromTag(String fromTag) {
-        this.fromTag = fromTag;
     }
 
     public String getEventId() {
@@ -90,11 +71,19 @@ public class SubscribeInfo {
         this.eventType = eventType;
     }
 
-    public String getBranch() {
-        return branch;
+    public ServerTransaction getTransaction() {
+        return transaction;
     }
 
-    public void setBranch(String branch) {
-        this.branch = branch;
+    public void setTransaction(ServerTransaction transaction) {
+        this.transaction = transaction;
+    }
+
+    public Dialog getDialog() {
+        return dialog;
+    }
+
+    public void setDialog(Dialog dialog) {
+        this.dialog = dialog;
     }
 }
