@@ -4,21 +4,17 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
-import com.genersoft.iot.vmp.common.StreamInfo;
-import com.genersoft.iot.vmp.conf.UserSetup;
+import com.genersoft.iot.vmp.conf.UserSetting;
 import com.genersoft.iot.vmp.gb28181.bean.*;
 import com.genersoft.iot.vmp.gb28181.event.EventPublisher;
 import com.genersoft.iot.vmp.gb28181.event.subscribe.catalog.CatalogEvent;
-import com.genersoft.iot.vmp.media.zlm.ZLMHttpHookSubscribe;
 import com.genersoft.iot.vmp.media.zlm.ZLMRESTfulUtils;
-import com.genersoft.iot.vmp.media.zlm.ZLMServerConfig;
 import com.genersoft.iot.vmp.media.zlm.dto.*;
 import com.genersoft.iot.vmp.service.IGbStreamService;
 import com.genersoft.iot.vmp.service.IMediaServerService;
 import com.genersoft.iot.vmp.service.IStreamPushService;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
 import com.genersoft.iot.vmp.storager.dao.*;
-import com.genersoft.iot.vmp.vmanager.bean.StreamPushExcelDto;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.slf4j.Logger;
@@ -63,14 +59,16 @@ public class StreamPushServiceImpl implements IStreamPushService {
     private IRedisCatchStorage redisCatchStorage;
 
     @Autowired
-    private UserSetup userSetup;
+    private UserSetting userSetting;
 
     @Autowired
     private IMediaServerService mediaServerService;
 
     @Override
     public List<StreamPushItem> handleJSON(String jsonData, MediaServerItem mediaServerItem) {
-        if (jsonData == null) return null;
+        if (jsonData == null) {
+            return null;
+        }
 
         Map<String, StreamPushItem> result = new HashMap<>();
 
@@ -223,7 +221,9 @@ public class StreamPushServiceImpl implements IStreamPushService {
             }
         }
         zlmresTfulUtils.getMediaList(mediaServerItem, (mediaList ->{
-            if (mediaList == null) return;
+            if (mediaList == null) {
+                return;
+            }
             String dataStr = mediaList.getString("data");
 
             Integer code = mediaList.getInteger("code");
@@ -263,7 +263,7 @@ public class StreamPushServiceImpl implements IStreamPushService {
                 String type = "PUSH";
                 for (MediaItem offlineMediaItem : offlineMediaItemList) {
                     JSONObject jsonObject = new JSONObject();
-                    jsonObject.put("serverId", userSetup.getServerId());
+                    jsonObject.put("serverId", userSetting.getServerId());
                     jsonObject.put("app", offlineMediaItem.getApp());
                     jsonObject.put("stream", offlineMediaItem.getStream());
                     jsonObject.put("register", false);
@@ -293,7 +293,7 @@ public class StreamPushServiceImpl implements IStreamPushService {
                 // 移除redis内流的信息
                 redisCatchStorage.removeStream(mediaServerId, type, mediaItem.getApp(), mediaItem.getStream());
                 JSONObject jsonObject = new JSONObject();
-                jsonObject.put("serverId", userSetup.getServerId());
+                jsonObject.put("serverId", userSetting.getServerId());
                 jsonObject.put("app", mediaItem.getApp());
                 jsonObject.put("stream", mediaItem.getStream());
                 jsonObject.put("register", false);
@@ -411,38 +411,35 @@ public class StreamPushServiceImpl implements IStreamPushService {
             // 遍历存储结果，查找app+Stream->platformId+catalogId的对应关系，然后执行批量写入
             for (StreamPushItem streamPushItem : streamPushItemsForPlatform) {
                 List<String[]> platFormInfoList = streamPushItemsForAll.get(streamPushItem.getApp() + streamPushItem.getStream());
-                if (platFormInfoList != null) {
-                    if (platFormInfoList.size() > 0) {
-                        for (String[] platFormInfoArray : platFormInfoList) {
-                            StreamPushItem streamPushItemForPlatform = new StreamPushItem();
-                            streamPushItemForPlatform.setGbStreamId(streamPushItem.getGbStreamId());
-                            if (platFormInfoArray.length > 0) {
-                                // 数组 platFormInfoArray 0 为平台ID。 1为目录ID
-                                // 不存在这个平台，则忽略导入此关联关系
-                                if (platformInfoMap.get(platFormInfoArray[0]) == null
-                                        || platformInfoMap.get(platFormInfoArray[0]).get(platFormInfoArray[1]) == null) {
-                                    logger.info("导入数据时不存在平台或目录{}/{},已导入未分配", platFormInfoArray[0], platFormInfoArray[1] );
-                                    continue;
-                                }
-                                streamPushItemForPlatform.setPlatformId(platFormInfoArray[0]);
-
-                                List<GbStream> gbStreamList = platformForEvent.get(streamPushItem.getPlatformId());
-                                if (gbStreamList == null) {
-                                    gbStreamList = new ArrayList<>();
-                                    platformForEvent.put(platFormInfoArray[0], gbStreamList);
-                                }
-                                // 为发送通知整理数据
-                                streamPushItemForPlatform.setName(streamPushItem.getName());
-                                streamPushItemForPlatform.setApp(streamPushItem.getApp());
-                                streamPushItemForPlatform.setStream(streamPushItem.getStream());
-                                streamPushItemForPlatform.setGbId(streamPushItem.getGbId());
-                                gbStreamList.add(streamPushItemForPlatform);
+                if (platFormInfoList != null && platFormInfoList.size() > 0) {
+                    for (String[] platFormInfoArray : platFormInfoList) {
+                        StreamPushItem streamPushItemForPlatform = new StreamPushItem();
+                        streamPushItemForPlatform.setGbStreamId(streamPushItem.getGbStreamId());
+                        if (platFormInfoArray.length > 0) {
+                            // 数组 platFormInfoArray 0 为平台ID。 1为目录ID
+                            // 不存在这个平台，则忽略导入此关联关系
+                            if (platformInfoMap.get(platFormInfoArray[0]) == null
+                                    || platformInfoMap.get(platFormInfoArray[0]).get(platFormInfoArray[1]) == null) {
+                                logger.info("导入数据时不存在平台或目录{}/{},已导入未分配", platFormInfoArray[0], platFormInfoArray[1] );
+                                continue;
                             }
-                            if (platFormInfoArray.length > 1) {
-                                streamPushItemForPlatform.setCatalogId(platFormInfoArray[1]);
+                            streamPushItemForPlatform.setPlatformId(platFormInfoArray[0]);
+                            List<GbStream> gbStreamList = platformForEvent.get(platFormInfoArray[0]);
+                            if (gbStreamList == null) {
+                                gbStreamList = new ArrayList<>();
+                                platformForEvent.put(platFormInfoArray[0], gbStreamList);
                             }
-                            streamPushItemListFroPlatform.add(streamPushItemForPlatform);
+                            // 为发送通知整理数据
+                            streamPushItemForPlatform.setName(streamPushItem.getName());
+                            streamPushItemForPlatform.setApp(streamPushItem.getApp());
+                            streamPushItemForPlatform.setStream(streamPushItem.getStream());
+                            streamPushItemForPlatform.setGbId(streamPushItem.getGbId());
+                            gbStreamList.add(streamPushItemForPlatform);
                         }
+                        if (platFormInfoArray.length > 1) {
+                            streamPushItemForPlatform.setCatalogId(platFormInfoArray[1]);
+                        }
+                        streamPushItemListFroPlatform.add(streamPushItemForPlatform);
                     }
 
                 }

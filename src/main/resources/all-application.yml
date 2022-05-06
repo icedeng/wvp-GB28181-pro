@@ -147,7 +147,7 @@ media:
     rtp:
         # [可选] 是否启用多端口模式, 开启后会在portRange范围内选择端口用于媒体流传输
         enable: true
-        # [可选] 在此范围内选择端口用于媒体流传输,
+        # [可选] 在此范围内选择端口用于媒体流传输, 必须提前在zlm上配置该属性，不然自动配置此属性可能不成功
         port-range: 30000,30500 # 端口范围
         # [可选] 国标级联在此范围内选择端口发送媒体流,
         send-port-range: 30000,30500 # 端口范围
@@ -170,6 +170,8 @@ user-settings:
     save-position-history: false
     # 点播等待超时时间,单位：毫秒
     play-timeout: 3000
+    # 上级点播等待超时时间,单位：毫秒
+    platform-play-timeout: 60000
     # 是否开启接口鉴权
     interface-authentication: true
     # 自动配置redis 可以过期事件

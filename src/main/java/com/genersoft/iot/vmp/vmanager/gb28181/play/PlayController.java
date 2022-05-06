@@ -33,13 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSONObject;
 import com.genersoft.iot.vmp.gb28181.transmit.cmd.impl.SIPCommander;
-import com.genersoft.iot.vmp.storager.IVideoManagerStorager;
+import com.genersoft.iot.vmp.storager.IVideoManagerStorage;
 import org.springframework.web.context.request.async.DeferredResult;
 
 import java.util.List;
 import java.util.UUID;
-
-import javax.sip.message.Response;
 
 @Api(tags = "国标设备点播")
 @CrossOrigin
@@ -56,7 +54,7 @@ public class PlayController {
 	private VideoStreamSessionManager streamSession;
 
 	@Autowired
-	private IVideoManagerStorager storager;
+	private IVideoManagerStorage storager;
 
 	@Autowired
 	private IRedisCatchStorage redisCatchStorage;
@@ -109,7 +107,6 @@ public class PlayController {
 		// 录像查询以channelId作为deviceId查询
 		String key = DeferredResultHolder.CALLBACK_CMD_STOP + deviceId + channelId;
 		resultHolder.put(key, uuid, result);
-		Device device = storager.queryVideoDevice(deviceId);
 		StreamInfo streamInfo = redisCatchStorage.queryPlayByDevice(deviceId, channelId);
 		if (streamInfo == null) {
 			RequestMessage msg = new RequestMessage();
@@ -120,15 +117,14 @@ public class PlayController {
 			storager.stopPlay(deviceId, channelId);
 			return result;
 		}
-		cmder.streamByeCmd(deviceId, channelId, streamInfo.getStream(), (event) -> {
+		cmder.streamByeCmd(deviceId, channelId, streamInfo.getStream(), null, eventResult -> {
 			redisCatchStorage.stopPlay(streamInfo);
 			storager.stopPlay(streamInfo.getDeviceID(), streamInfo.getChannelId());
-			RequestMessage msg = new RequestMessage();
-			msg.setId(uuid);
-			msg.setKey(key);
-			//Response response = event.getResponse();
-			msg.setData(String.format("success"));
-			resultHolder.invokeAllResult(msg);
+			RequestMessage msgForSuccess = new RequestMessage();
+			msgForSuccess.setId(uuid);
+			msgForSuccess.setKey(key);
+			msgForSuccess.setData(String.format("success"));
+			resultHolder.invokeAllResult(msgForSuccess);
 		});
 
 		if (deviceId != null || channelId != null) {
@@ -174,7 +170,7 @@ public class PlayController {
 	public ResponseEntity<String> playConvert(@PathVariable String streamId) {
 		StreamInfo streamInfo = redisCatchStorage.queryPlayByStreamId(streamId);
 		if (streamInfo == null) {
-			streamInfo = redisCatchStorage.queryPlaybackByStreamId(streamId);
+			streamInfo = redisCatchStorage.queryPlayback(null, null, streamId, null);
 		}
 		if (streamInfo == null) {
 			logger.warn("视频转码API调用失败！, 视频流已经停止!");

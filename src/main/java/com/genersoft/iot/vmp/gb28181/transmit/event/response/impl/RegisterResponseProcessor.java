@@ -2,11 +2,12 @@ package com.genersoft.iot.vmp.gb28181.transmit.event.response.impl;
 
 import com.genersoft.iot.vmp.gb28181.bean.ParentPlatform;
 import com.genersoft.iot.vmp.gb28181.bean.ParentPlatformCatch;
+import com.genersoft.iot.vmp.gb28181.bean.SubscribeHolder;
 import com.genersoft.iot.vmp.gb28181.transmit.SIPProcessorObserver;
 import com.genersoft.iot.vmp.gb28181.transmit.cmd.ISIPCommanderForPlatform;
 import com.genersoft.iot.vmp.gb28181.transmit.event.response.SIPResponseProcessorAbstract;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
-import com.genersoft.iot.vmp.storager.IVideoManagerStorager;
+import com.genersoft.iot.vmp.storager.IVideoManagerStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,13 +33,16 @@ public class RegisterResponseProcessor extends SIPResponseProcessorAbstract {
 	private ISIPCommanderForPlatform sipCommanderForPlatform;
 
 	@Autowired
-	private IVideoManagerStorager storager;
+	private IVideoManagerStorage storager;
 
 	@Autowired
 	private IRedisCatchStorage redisCatchStorage;
 
 	@Autowired
 	private SIPProcessorObserver sipProcessorObserver;
+
+	@Autowired
+	private SubscribeHolder subscribeHolder;
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
@@ -83,20 +87,21 @@ public class RegisterResponseProcessor extends SIPResponseProcessorAbstract {
 			// 注册/注销成功
 			logger.info(String.format("%s %s成功", platformGBId, action));
 			redisCatchStorage.delPlatformRegisterInfo(callId);
-			parentPlatform.setStatus("注册".equals(action));
+			redisCatchStorage.delPlatformCatchInfo(platformGBId);
 			// 取回Expires设置，避免注销过程中被置为0
-			if (!parentPlatformCatch.getParentPlatform().getExpires().equals("0")) {
-				ParentPlatform parentPlatformTmp = storager.queryParentPlatByServerGBId(platformGBId);
-				String expires = parentPlatformTmp.getExpires();
-				parentPlatform.setExpires(expires);
-				parentPlatform.setId(parentPlatformTmp.getId());
-				redisCatchStorage.updatePlatformRegister(parentPlatform);
-				redisCatchStorage.updatePlatformKeepalive(parentPlatform);
-				parentPlatformCatch.setParentPlatform(parentPlatform);
-				redisCatchStorage.updatePlatformCatchInfo(parentPlatformCatch);
+			ParentPlatform parentPlatformTmp = storager.queryParentPlatByServerGBId(platformGBId);
+			if (parentPlatformTmp != null) {
+				parentPlatformTmp.setStatus("注册".equals(action));
+				redisCatchStorage.updatePlatformRegister(parentPlatformTmp);
+				redisCatchStorage.updatePlatformKeepalive(parentPlatformTmp);
+				parentPlatformCatch.setParentPlatform(parentPlatformTmp);
 			}
+			redisCatchStorage.updatePlatformCatchInfo(parentPlatformCatch);
 			storager.updateParentPlatformStatus(platformGBId, "注册".equals(action));
-
+			if ("注销".equals(action)) {
+				subscribeHolder.removeCatalogSubscribe(platformGBId);
+				subscribeHolder.removeMobilePositionSubscribe(platformGBId);
+			}
 		}
 	}
 
