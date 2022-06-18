@@ -47,8 +47,6 @@ public class VideoManagerConstants {
 	public static final String PLATFORM_SEND_RTP_INFO_PREFIX = "VMP_PLATFORM_SEND_RTP_INFO_";
 
 	public static final String EVENT_ONLINE_REGISTER = "1";
-	
-	public static final String EVENT_ONLINE_KEEPLIVE = "2";
 
 	public static final String EVENT_ONLINE_MESSAGE = "3";
 
@@ -99,4 +97,5 @@ public class VideoManagerConstants {
 	//**************************    第三方  ****************************************
 	public static final String WVP_STREAM_GB_ID_PREFIX = "memberNo_";
 	public static final String WVP_STREAM_GPS_MSG_PREFIX = "WVP_STREAM_GPS_MSG_";
+
 }

@@ -14,13 +14,13 @@ import com.genersoft.iot.vmp.service.bean.MessageForPushChannel;
 import com.genersoft.iot.vmp.service.bean.ThirdPartyGB;
 import com.genersoft.iot.vmp.storager.IRedisCatchStorage;
 import com.genersoft.iot.vmp.storager.dao.DeviceChannelMapper;
+import com.genersoft.iot.vmp.utils.DateUtil;
 import com.genersoft.iot.vmp.utils.redis.RedisUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 @SuppressWarnings("rawtypes")
@@ -37,8 +37,6 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
 
     @Autowired
     private UserSetting userSetting;
-
-    private final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public Long getCSEQ(String method) {
@@ -470,26 +468,6 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     }
 
     @Override
-    public void outlineForAll() {
-        List<Object> onlineDevices = redis.scan(VideoManagerConstants.KEEPLIVEKEY_PREFIX + userSetting.getServerId() + "_" + "*" );
-        for (int i = 0; i < onlineDevices.size(); i++) {
-            String key = (String) onlineDevices.get(i);
-            redis.del(key);
-        }
-    }
-
-    @Override
-    public List<String> getOnlineForAll() {
-        List<String> result = new ArrayList<>();
-        List<Object> onlineDevices = redis.scan(VideoManagerConstants.KEEPLIVEKEY_PREFIX + userSetting.getServerId() + "_"  + "*" );
-        for (int i = 0; i < onlineDevices.size(); i++) {
-            String key = (String) onlineDevices.get(i);
-            result.add((String) redis.get(key));
-        }
-        return result;
-    }
-
-    @Override
     public void updateWVPInfo(JSONObject jsonObject, int time) {
         String key = VideoManagerConstants.WVP_SERVER_PREFIX + userSetting.getServerId();
         redis.set(key, jsonObject, time);
@@ -609,11 +587,11 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
         String scanKey = VideoManagerConstants.WVP_STREAM_GPS_MSG_PREFIX + userSetting.getServerId() + "_*";
         List<GPSMsgInfo> result = new ArrayList<>();
         List<Object> keys = redis.scan(scanKey);
-        for (int i = 0; i < keys.size(); i++) {
-            String key = (String) keys.get(i);
+        for (Object o : keys) {
+            String key = (String) o;
             GPSMsgInfo gpsMsgInfo = (GPSMsgInfo) redis.get(key);
             if (!gpsMsgInfo.isStored()) { // 只取没有存过得
-                result.add((GPSMsgInfo)redis.get(key));
+                result.add((GPSMsgInfo) redis.get(key));
             }
         }
 
@@ -638,7 +616,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     public void addCpuInfo(double cpuInfo) {
         String key = VideoManagerConstants.SYSTEM_INFO_CPU_PREFIX + userSetting.getServerId();
         SystemInfoDto<Double> systemInfoDto = new SystemInfoDto<>();
-        systemInfoDto.setTime(format.format(System.currentTimeMillis()));
+        systemInfoDto.setTime(DateUtil.getNow());
         systemInfoDto.setData(cpuInfo);
         redis.lSet(key, systemInfoDto);
         // 每秒一个，最多只存30个
@@ -653,7 +631,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     public void addMemInfo(double memInfo) {
         String key = VideoManagerConstants.SYSTEM_INFO_MEM_PREFIX + userSetting.getServerId();
         SystemInfoDto<Double> systemInfoDto = new SystemInfoDto<>();
-        systemInfoDto.setTime(format.format(System.currentTimeMillis()));
+        systemInfoDto.setTime(DateUtil.getNow());
         systemInfoDto.setData(memInfo);
         redis.lSet(key, systemInfoDto);
         // 每秒一个，最多只存30个
@@ -668,7 +646,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     public void addNetInfo(Map<String, String> networkInterfaces) {
         String key = VideoManagerConstants.SYSTEM_INFO_NET_PREFIX + userSetting.getServerId();
         SystemInfoDto<Map<String, String>> systemInfoDto = new SystemInfoDto<>();
-        systemInfoDto.setTime(format.format(System.currentTimeMillis()));
+        systemInfoDto.setTime(DateUtil.getNow());
         systemInfoDto.setData(networkInterfaces);
         redis.lSet(key, systemInfoDto);
         // 每秒一个，最多只存30个
@@ -689,7 +667,7 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
     @Override
     public void sendStreamPushRequestedMsg(MessageForPushChannel msg) {
         String key = VideoManagerConstants.VM_MSG_STREAM_PUSH_REQUESTED;
-        logger.info("[redis 推流被请求通知] {}: {}-{}", key, msg.getApp(), msg.getStream());
+        logger.info("[redis 推流被请求通知] {}: {}/{}", key, msg.getApp(), msg.getStream());
         redis.convertAndSend(key, (JSONObject)JSON.toJSON(msg));
     }
 
@@ -702,7 +680,6 @@ public class RedisCatchStorageImpl implements IRedisCatchStorage {
 
     @Override
     public boolean deviceIsOnline(String deviceId) {
-        String key = VideoManagerConstants.KEEPLIVEKEY_PREFIX + userSetting.getServerId() + "_" + deviceId;
-        return redis.hasKey(key);
+        return getDevice(deviceId).getOnline() == 1;
     }
 }

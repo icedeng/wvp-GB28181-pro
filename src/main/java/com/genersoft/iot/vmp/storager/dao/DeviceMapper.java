@@ -38,6 +38,7 @@ public interface DeviceMapper {
                 "mobilePositionSubmissionInterval," +
                 "subscribeCycleForAlarm," +
                 "ssrcCheck," +
+                "geoCoordSys," +
                 "online" +
             ") VALUES (" +
                 "#{deviceId}," +
@@ -61,6 +62,7 @@ public interface DeviceMapper {
                 "#{mobilePositionSubmissionInterval}," +
                 "#{subscribeCycleForAlarm}," +
                 "#{ssrcCheck}," +
+                "#{geoCoordSys}," +
                 "#{online}" +
             ")")
     int add(Device device);
@@ -87,6 +89,7 @@ public interface DeviceMapper {
                 "<if test=\"mobilePositionSubmissionInterval != null\">, mobilePositionSubmissionInterval=${mobilePositionSubmissionInterval}</if>" +
                 "<if test=\"subscribeCycleForAlarm != null\">, subscribeCycleForAlarm=${subscribeCycleForAlarm}</if>" +
                 "<if test=\"ssrcCheck != null\">, ssrcCheck=${ssrcCheck}</if>" +
+                "<if test=\"geoCoordSys != null\">, geoCoordSys=#{geoCoordSys}</if>" +
                 "WHERE deviceId='${deviceId}'"+
             " </script>"})
     int update(Device device);
@@ -99,4 +102,9 @@ public interface DeviceMapper {
 
     @Update("UPDATE device SET online=0")
     int outlineForAll();
+
+    @Select("SELECT * FROM device WHERE online = 1")
+    List<Device> getOnlineDevices();
+    @Select("SELECT * FROM device WHERE ip = #{host} AND port=${port}")
+    Device getDeviceByHostAndPort(String host, int port);
 }

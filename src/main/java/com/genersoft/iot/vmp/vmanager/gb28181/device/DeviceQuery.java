@@ -21,16 +21,22 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.http.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.sip.DialogState;
+import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 
 @Api(tags = "国标设备查询", value = "国标设备查询")
@@ -200,6 +206,11 @@ public class DeviceQuery {
 			Set<String> allKeys = dynamicTask.getAllKeys();
 			for (String key : allKeys) {
 				if (key.startsWith(deviceId)) {
+					Runnable runnable = dynamicTask.get(key);
+					if (runnable instanceof ISubscribeTask) {
+						ISubscribeTask subscribeTask = (ISubscribeTask) runnable;
+						subscribeTask.stop();
+					}
 					dynamicTask.stop(key);
 				}
 			}
@@ -288,7 +299,8 @@ public class DeviceQuery {
 	public ResponseEntity<PageInfo> updateTransport(@PathVariable String deviceId, @PathVariable String streamMode){
 		Device device = storager.queryVideoDevice(deviceId);
 		device.setStreamMode(streamMode);
-		storager.updateDevice(device);
+//		storager.updateDevice(device);
+		deviceService.updateDevice(device);
 		return new ResponseEntity<>(null,HttpStatus.OK);
 	}
 
@@ -305,51 +317,7 @@ public class DeviceQuery {
 	public ResponseEntity<WVPResult<String>> updateDevice(Device device){
 
 		if (device != null && device.getDeviceId() != null) {
-			Device deviceInStore = storager.queryVideoDevice(device.getDeviceId());
-			if (!StringUtils.isEmpty(device.getName())) {
-				deviceInStore.setName(device.getName());
-			}
-			if (!StringUtils.isEmpty(device.getCharset())) {
-				deviceInStore.setCharset(device.getCharset());
-			}
-			if (!StringUtils.isEmpty(device.getMediaServerId())) {
-				deviceInStore.setMediaServerId(device.getMediaServerId());
-			}
-
-			//  目录订阅相关的信息
-			if (device.getSubscribeCycleForCatalog() > 0) {
-				if (deviceInStore.getSubscribeCycleForCatalog() == 0 || deviceInStore.getSubscribeCycleForCatalog() != device.getSubscribeCycleForCatalog()) {
-					deviceInStore.setSubscribeCycleForCatalog(device.getSubscribeCycleForCatalog());
-					// 开启订阅
-					deviceService.addCatalogSubscribe(deviceInStore);
-				}
-			}else if (device.getSubscribeCycleForCatalog() == 0) {
-				if (deviceInStore.getSubscribeCycleForCatalog() != 0) {
-					deviceInStore.setSubscribeCycleForCatalog(device.getSubscribeCycleForCatalog());
-					// 取消订阅
-					deviceService.removeCatalogSubscribe(deviceInStore);
-				}
-			}
-
-			// 移动位置订阅相关的信息
-			if (device.getSubscribeCycleForMobilePosition() > 0) {
-				if (deviceInStore.getSubscribeCycleForMobilePosition() == 0 || deviceInStore.getSubscribeCycleForMobilePosition() != device.getSubscribeCycleForMobilePosition()) {
-					deviceInStore.setMobilePositionSubmissionInterval(device.getMobilePositionSubmissionInterval());
-					deviceInStore.setSubscribeCycleForMobilePosition(device.getSubscribeCycleForMobilePosition());
-					// 开启订阅
-					deviceService.addMobilePositionSubscribe(deviceInStore);
-				}
-			}else if (device.getSubscribeCycleForMobilePosition() == 0) {
-				if (deviceInStore.getSubscribeCycleForMobilePosition() != 0) {
-					// 取消订阅
-					deviceService.removeMobilePositionSubscribe(deviceInStore);
-				}
-			}
-
-			// TODO 报警订阅相关的信息
-
-			storager.updateDevice(device);
-			cmder.deviceInfoQuery(device);
+			deviceService.updateDevice(device);
 		}
 		WVPResult<String> result = new WVPResult<>();
 		result.setCode(0);
@@ -493,5 +461,18 @@ public class DeviceQuery {
 		wvpResult.setCode(0);
 		wvpResult.setData(dialogStateMap);
 		return wvpResult;
+	}
+
+	@GetMapping("/snap/{deviceId}/{channelId}")
+	@ApiOperation(value = "请求截图", notes = "请求截图")
+	public void getSnap(HttpServletResponse resp, @PathVariable String deviceId, @PathVariable String channelId) {
+
+		try {
+			final InputStream in = Files.newInputStream(new File("snap" + File.separator + deviceId + "_" + channelId + ".jpg").toPath());
+			resp.setContentType(MediaType.IMAGE_PNG_VALUE);
+			IOUtils.copy(in, resp.getOutputStream());
+		} catch (IOException e) {
+			resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+		}
 	}
 }
