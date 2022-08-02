@@ -141,7 +141,9 @@ public class RegisterRequestProcessor extends SIPRequestProcessorParent implemen
                 device.setStreamMode("UDP");
                 device.setCharset("GB2312");
                 device.setGeoCoordSys("WGS84");
+                device.setTreeType("CivilCode");
                 device.setDeviceId(deviceId);
+                device.setOnline(0);
             }
             device.setIp(received);
             device.setPort(rPort);

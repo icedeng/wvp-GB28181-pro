@@ -38,8 +38,14 @@
           </el-form-item>
           <el-form-item label="地理坐标系" prop="geoCoordSys" >
             <el-select v-model="form.geoCoordSys" style="float: left; width: 100%" >
-              <el-option key="GCJ02" label="GCJ02" value="GCJ02"></el-option>
               <el-option key="WGS84" label="WGS84" value="WGS84"></el-option>
+              <el-option key="GCJ02" label="GCJ02" value="GCJ02"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="目录结构" prop="treeType" >
+            <el-select v-model="form.treeType" style="float: left; width: 100%" >
+              <el-option key="WGS84" label="行政区划" value="CivilCode"></el-option>
+              <el-option key="GCJ02" label="业务分组" value="BusinessGroup"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="目录订阅" title="0为取消订阅" prop="subscribeCycleForCatalog" >

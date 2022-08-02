@@ -194,6 +194,16 @@ public class DeviceChannel {
 	 */
 	private int channelType;
 
+	/**
+	 * 业务分组
+	 */
+	private String businessGroupId;
+
+	/**
+	 * GPS的更新时间
+	 */
+	private String gpsTime;
+
 	public int getId() {
 		return id;
 	}
@@ -505,5 +515,21 @@ public class DeviceChannel {
 
 	public void setChannelType(int channelType) {
 		this.channelType = channelType;
+	}
+
+	public String getBusinessGroupId() {
+		return businessGroupId;
+	}
+
+	public void setBusinessGroupId(String businessGroupId) {
+		this.businessGroupId = businessGroupId;
+	}
+
+	public String getGpsTime() {
+		return gpsTime;
+	}
+
+	public void setGpsTime(String gpsTime) {
+		this.gpsTime = gpsTime;
 	}
 }

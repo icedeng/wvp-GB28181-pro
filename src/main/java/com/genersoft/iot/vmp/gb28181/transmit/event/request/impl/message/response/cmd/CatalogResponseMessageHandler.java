@@ -111,6 +111,7 @@ public class CatalogResponseMessageHandler extends SIPRequestProcessorParent imp
                         int sumNum = Integer.parseInt(sumNumElement.getText());
 
                         if (sumNum == 0) {
+                            logger.info("[收到通道]设备:{}的: 0个", take.getDevice().getDeviceId());
                             // 数据已经完整接收
                             storager.cleanChannelsForDevice(take.getDevice().getDeviceId());
                             catalogDataCatch.setChannelSyncEnd(take.getDevice().getDeviceId(), null);
@@ -125,18 +126,14 @@ public class CatalogResponseMessageHandler extends SIPRequestProcessorParent imp
                                     if (channelDeviceElement == null) {
                                         continue;
                                     }
-                                    //by brewswang
-    //                        if (NumericUtil.isDouble(XmlUtil.getText(itemDevice, "Longitude"))) {//如果包含位置信息，就更新一下位置
-    //                            processNotifyMobilePosition(evt, itemDevice);
-    //                        }
-                                    DeviceChannel deviceChannel = XmlUtil.channelContentHander(itemDevice, device);
+                                    DeviceChannel deviceChannel = XmlUtil.channelContentHander(itemDevice, device, null);
                                     deviceChannel.setDeviceId(take.getDevice().getDeviceId());
 
                                     channelList.add(deviceChannel);
                                 }
                                 int sn = Integer.parseInt(snElement.getText());
                                 catalogDataCatch.put(take.getDevice().getDeviceId(), sn, sumNum, take.getDevice(), channelList);
-                                logger.info("收到来自设备【{}】的通道: {}个，{}/{}", take.getDevice().getDeviceId(), channelList.size(), catalogDataCatch.get(take.getDevice().getDeviceId()) == null ? 0 :catalogDataCatch.get(take.getDevice().getDeviceId()).size(), sumNum);
+                                logger.info("[收到通道]设备: {} -> {}个，{}/{}", take.getDevice().getDeviceId(), channelList.size(), catalogDataCatch.get(take.getDevice().getDeviceId()) == null ? 0 :catalogDataCatch.get(take.getDevice().getDeviceId()).size(), sumNum);
                                 if (catalogDataCatch.get(take.getDevice().getDeviceId()).size() == sumNum) {
                                     // 数据已经完整接收
                                     boolean resetChannelsResult = storager.resetChannels(take.getDevice().getDeviceId(), catalogDataCatch.get(take.getDevice().getDeviceId()));
@@ -169,71 +166,6 @@ public class CatalogResponseMessageHandler extends SIPRequestProcessorParent imp
     @Override
     public void handForPlatform(RequestEvent evt, ParentPlatform parentPlatform, Element rootElement) {
 
-    }
-
-    /**
-     * 处理设备位置的更新
-     *
-     * @param evt, itemDevice
-     */
-    private void processNotifyMobilePosition(RequestEvent evt, Element itemDevice) {
-        try {
-            // 回复 200 OK
-            Element rootElement = getRootElement(evt);
-            MobilePosition mobilePosition = new MobilePosition();
-            Element deviceIdElement = rootElement.element("DeviceID");
-            String deviceId = deviceIdElement.getTextTrim().toString();
-            Device device = redisCatchStorage.getDevice(deviceId);
-            if (device != null) {
-                if (!StringUtils.isEmpty(device.getName())) {
-                    mobilePosition.setDeviceName(device.getName());
-                }
-            }
-            mobilePosition.setDeviceId(XmlUtil.getText(rootElement, "DeviceID"));
-
-            String time = XmlUtil.getText(itemDevice, "Time");
-            if(time==null){
-                time =  XmlUtil.getText(itemDevice, "EndTime");
-            }
-            mobilePosition.setTime(time);
-            String longitude = XmlUtil.getText(itemDevice, "Longitude");
-            if(longitude!=null) {
-                mobilePosition.setLongitude(Double.parseDouble(longitude));
-            }
-            String latitude = XmlUtil.getText(itemDevice, "Latitude");
-            if(latitude!=null) {
-                mobilePosition.setLatitude(Double.parseDouble(latitude));
-            }
-            if (NumericUtil.isDouble(XmlUtil.getText(itemDevice, "Speed"))) {
-                mobilePosition.setSpeed(Double.parseDouble(XmlUtil.getText(itemDevice, "Speed")));
-            } else {
-                mobilePosition.setSpeed(0.0);
-            }
-            if (NumericUtil.isDouble(XmlUtil.getText(itemDevice, "Direction"))) {
-                mobilePosition.setDirection(Double.parseDouble(XmlUtil.getText(itemDevice, "Direction")));
-            } else {
-                mobilePosition.setDirection(0.0);
-            }
-            if (NumericUtil.isDouble(XmlUtil.getText(itemDevice, "Altitude"))) {
-                mobilePosition.setAltitude(Double.parseDouble(XmlUtil.getText(itemDevice, "Altitude")));
-            } else {
-                mobilePosition.setAltitude(0.0);
-            }
-            mobilePosition.setReportSource("Mobile Position");
-            // 默认来源坐标系为WGS-84处理
-            Double[] gcj02Point = Coordtransform.WGS84ToGCJ02(mobilePosition.getLongitude(), mobilePosition.getLatitude());
-            logger.info("GCJ02坐标：" + gcj02Point[0] + ", " + gcj02Point[1]);
-            mobilePosition.setGeodeticSystem("GCJ-02");
-            mobilePosition.setCnLng(gcj02Point[0] + "");
-            mobilePosition.setCnLat(gcj02Point[1] + "");
-            if (!userSetting.getSavePositionHistory()) {
-                storager.clearMobilePositionsByDeviceId(deviceId);
-            }
-            storager.insertMobilePosition(mobilePosition);
-            responseAck(evt, Response.OK);
-        } catch (DocumentException | SipException | InvalidArgumentException | ParseException e) {
-            e.printStackTrace();
-        }
     }
 
     public SyncStatus getChannelSyncProgress(String deviceId) {
